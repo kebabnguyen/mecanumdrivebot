@@ -1,6 +1,6 @@
 import pexpect
 import time
-
+import asyncio
 class DS4Parser:
     def __init__(self):
         self.inputs = (
@@ -38,9 +38,11 @@ class DS4Parser:
         try:
             if self.ds4drv.expect('Scanning for devices') == 0:
                 print('please connect controller')           
-                if self.ds4drv.expect('Connected to Bluetooth Controller') == 0:
-                    print('controller connected') 
-                    self.connected = 1
+            if self.ds4drv.expect('Connected to Bluetooth Controller') == 0:
+                print('controller connected') 
+                self.connected = 1
+            if self.ds4drv.expect('Battery: ') == 0:
+                print('all set') 
         except pexpect.TIMEOUT:
             print('it aint working, retrying')
             self.connected = -1
@@ -52,25 +54,37 @@ class DS4Parser:
         except pexpect.TIMEOUT:
             return 1
          
-    def checkval(self):
+    def checkvals(self):
         for buttonname in self.inputs:
             if self.ds4drv.expect(buttonname) == 0:
                 print(self.ds4drv.readline())
-    def sanitycheck(self):
-        if self.ds4drv.expect('Report dump: ', timeout = .5) == 0:
-            #if self.ds4drv.expect('trackpad_touch0_id: ', timeout = .15) == 0:
-            print(self.ds4drv.read(80))
+
+    def is_active(self):
+        try:
+            if self.ds4drv.expect('Report dump', timeout = .5) == 0:
+                return 1
+        except:
+            return -1
+
+    def controller_on(self):
+        try:
+            if self.ds4drv.expect('delete this you muppet', timeout = .1) == 0:
+                return -1
+        except:
+            return 1
     def __del__(self):
         self.ds4drv.terminate()
 
+
 def main():
     parser = DS4Parser()
-    while parser.connected != 1:
+    while parser.connected != 1: #make sure controller is connected
         parser.connect()
-    while parser.checkstatus() == 1:
-        parser.sanitycheck()
-        while parser.checkstatus() != 1:
-            break
+    while parser.controller_on() == 1:
+        if parser.is_active() == 1: #if light green
+            parser.checkvals()
+        else:                       #light yellow, but still on
+            print('in idle')
     del parser
 
 if __name__ == "__main__":

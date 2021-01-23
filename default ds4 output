@@ -1,0 +1,6 @@
+[info][bluetooth] Scanning for devices
+[info][bluetooth] Found device 40:1B:5F:94:33:EA
+[info][controller 1] Connected to Bluetooth Controller (40:1B:5F:94:33:EA)
+[info][bluetooth] Scanning for devices
+[info][controller 1] Battery: Fully charged
+[warning][controller 1] Signal strength is low (28 reports/s)
