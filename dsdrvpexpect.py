@@ -1,8 +1,13 @@
 import pexpect
 import time
-import asyncio
+import serial
+
 class DS4Parser:
     def __init__(self):
+        try:
+            self.ser = serial.Serial('/dev/ttyACM0', 9600)
+        except: 
+            print('close the arduino port you muppet')
         self.inputs = (
                         'left_analog_x: ', 
                         'left_analog_y: ',
@@ -29,8 +34,9 @@ class DS4Parser:
                         'button_trackpad: ',
                         'button_ps: '
                     )
-        self.connected = -1
-        self.active = 1
+        self.analogs = self.inputs[0:6]
+        self.connected = 0
+        self.active = 0
         shellcmd = 'ds4drv --dump-reports'
         self.ds4drv = pexpect.spawn('/bin/bash', ['-c', shellcmd]) 
        
@@ -43,48 +49,46 @@ class DS4Parser:
                 self.connected = 1
             if self.ds4drv.expect('Battery: ') == 0:
                 print('all set') 
+                self.active = 1
         except pexpect.TIMEOUT:
             print('it aint working, retrying')
-            self.connected = -1
-
-    def checkstatus(self):
-        try:
-            if self.ds4drv.expect('profile: idle', 1) == 0:
-                return -1
-        except pexpect.TIMEOUT:
-            return 1
+            self.connected = 0
          
-    def checkvals(self):
-        for buttonname in self.inputs:
+    def checkvals(self, buttons):
+        for buttonname in buttons:
             if self.ds4drv.expect(buttonname) == 0:
-                print(self.ds4drv.readline())
+                readin = self.ds4drv.readline()
+                self.ser.write(readin)
 
     def is_active(self):
         try:
-            if self.ds4drv.expect('Report dump', timeout = .5) == 0:
+            if self.ds4drv.expect('Report dump', timeout = 1.25) == 0:
                 return 1
         except:
-            return -1
+            return 0
 
     def controller_on(self):
         try:
             if self.ds4drv.expect('delete this you muppet', timeout = .1) == 0:
-                return -1
+                print('goodbye')
+                return 0
         except:
             return 1
+
     def __del__(self):
         self.ds4drv.terminate()
-
 
 def main():
     parser = DS4Parser()
     while parser.connected != 1: #make sure controller is connected
         parser.connect()
     while parser.controller_on() == 1:
-        if parser.is_active() == 1: #if light green
-            parser.checkvals()
-        else:                       #light yellow, but still on
+        if parser.is_active() == 1:   #if light green
+            parser.checkvals(parser.analogs)
+        elif parser.is_active() == 0: #light yellow, but still on
             print('in idle')
+            pass
+
     del parser
 
 if __name__ == "__main__":
