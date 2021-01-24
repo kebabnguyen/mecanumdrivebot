@@ -6,22 +6,24 @@ void setup() {
 }
 
 void loop() {
-  // send data only when you receive data:
+  //check if serial buffer is nonempty
   if (Serial.available() > 0) {
     // read the incoming byte:
-    incomingByte = Serial.read() - 48;
-
-    if(incomingByte == -35)
+    incomingByte = Serial.read();
+    
+    switch(incomingByte)
     {
-      Serial.print("I received: ");
+      case 13:
+      Serial.print("received: ");
       Serial.println(num);
       num = 0;
-      Serial.println("New number!");
+      break;
+      case 10:
+      break;
+      default:
+      num = num*10 + (incomingByte - 48);
     }
-    else
-    {
-    num = num*10+incomingByte;
-    }
+
     
 
   }
