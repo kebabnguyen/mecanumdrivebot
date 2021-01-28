@@ -9,9 +9,10 @@ void loop() {
   //check if serial buffer is nonempty
   if (Serial.available() > 0) {
     // read the incoming byte:
-    incomingByte = Serial.read();
-    
-    switch(incomingByte)
+    incomingByte = Serial.read(); 
+
+    //incomingByte is read as an ascii value, 13 is carriage return, 10 is newline
+    switch(incomingByte) 
     {
       case 13:
       Serial.print("received: ");

@@ -4,8 +4,10 @@ import serial
 
 class DS4Parser:
     def __init__(self):
+        self.serialopen = 0
         try:
             self.ser = serial.Serial('/dev/ttyACM0', 9600)
+            self.serialopen = 1
         except: 
             print('close the arduino port you muppet')
         self.inputs = (
@@ -34,20 +36,23 @@ class DS4Parser:
                         'button_trackpad: ',
                         'button_ps: '
                     )
-        self.analogs = self.inputs[0:6]
+        self.analogs = ('left_analog_x: ', 
+                        'left_analog_y: ', 
+                        'l2_analog: ',
+                        'r2_analog: ',)
         self.connected = 0
         self.active = 0
         shellcmd = 'ds4drv --dump-reports'
         self.ds4drv = pexpect.spawn('/bin/bash', ['-c', shellcmd]) 
        
-    def connect(self):
-        try:
+    def connect(self): #if it doesnt connect in 30s then it gives timeout and tries again,
+        try:           #but it seems that the child process will connect fine while this function doesn't update correctly and thinks its not connected
             if self.ds4drv.expect('Scanning for devices') == 0:
                 print('please connect controller')           
             if self.ds4drv.expect('Connected to Bluetooth Controller') == 0:
                 print('controller connected') 
                 self.connected = 1
-            if self.ds4drv.expect('Battery: ') == 0:
+            if self.ds4drv.expect('Battery: ', timeout=60) == 0:
                 print('all set') 
                 self.active = 1
         except pexpect.TIMEOUT:
@@ -58,7 +63,9 @@ class DS4Parser:
         for buttonname in buttons:
             if self.ds4drv.expect(buttonname) == 0:
                 readin = self.ds4drv.readline()
-                self.ser.write(readin)
+                if self.serialopen == 1:
+                    self.ser.write(readin)
+                print(readin)
 
     def is_active(self):
         try:
