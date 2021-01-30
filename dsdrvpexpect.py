@@ -40,6 +40,7 @@ class DS4Parser:
                         'left_analog_y: ', 
                         'l2_analog: ',
                         'r2_analog: ',)
+        self.values = []
         self.connected = 0
         self.active = 0
         shellcmd = 'ds4drv --dump-reports'
@@ -59,14 +60,12 @@ class DS4Parser:
             print('it aint working, retrying')
             self.connected = 0
          
-    def checkvals(self, buttons):
+    def storevals(self, buttons):
         for buttonname in buttons:
             if self.ds4drv.expect(buttonname) == 0:
-                readin = self.ds4drv.readline()
-                if self.serialopen == 1:
-                    self.ser.write(readin)
-                print(readin)
-
+                readin = int(self.ds4drv.readline())
+                self.values.append(readin)
+        return self.values
     def is_active(self):
         try:
             if self.ds4drv.expect('Report dump', timeout = 1.25) == 0:
@@ -91,7 +90,7 @@ def main():
         parser.connect()
     while parser.controller_on() == 1:
         if parser.is_active() == 1:   #if light green
-            parser.checkvals(parser.analogs)
+            parser.storevals(parser.analogs)
         elif parser.is_active() == 0: #light yellow, but still on
             print('in idle')
             pass
