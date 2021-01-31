@@ -1,4 +1,5 @@
 import pexpect
+import math
 import time
 import serial
 
@@ -40,7 +41,7 @@ class DS4Parser:
                         'left_analog_y: ', 
                         'l2_analog: ',
                         'r2_analog: ',)
-        self.values = []
+        self.values = [0, 0, 0, 0]
         self.connected = 0
         self.active = 0
         shellcmd = 'ds4drv --dump-reports'
@@ -61,13 +62,34 @@ class DS4Parser:
             self.connected = 0
          
     def storevals(self, buttons):
+        iterator = 0
         for buttonname in buttons:
             if self.ds4drv.expect(buttonname) == 0:
                 readin = int(self.ds4drv.readline())
-                self.values.append(readin)
-        return self.values
+                self.values[iterator] = readin
+                iterator += 1
+        return self.values #this list probably could be attached to a dictionary
+
+    def normalize(self, vals): #math according to mecanummath spreadsheet
+        normvals = [0, 0, 0, 0]
+        normvals[0] = (vals[0] / 127) - 1
+        normvals[1] = (vals[1] / -127) - 1
+        normvals[2] = vals[2] / 255
+        normvals[3] = vals[3] / 255
+        return normvals
+
+    def radius(self, x, y):
+        return math.sqrt( math.pow(x,2) + math.pow(y,2))
+
+    def radians(self, x, y): #gets angle from the vertical axis going CCW
+        return math.atan2(x, y)
+
+    def calculate_motorvals(self, vals):
+        rad = self.radius(vals[0], vals[1])
+        theta = self.radians(vals[0], vals[1])
+
     def is_active(self):
-        try:
+        try: #try fiddling around with timeout and seeing if that does anything
             if self.ds4drv.expect('Report dump', timeout = 1.25) == 0:
                 return 1
         except:
@@ -90,7 +112,8 @@ def main():
         parser.connect()
     while parser.controller_on() == 1:
         if parser.is_active() == 1:   #if light green
-            parser.storevals(parser.analogs)
+            normvals = parser.normalize(parser.storevals(parser.analogs))
+            print(normvals)
         elif parser.is_active() == 0: #light yellow, but still on
             print('in idle')
             pass
