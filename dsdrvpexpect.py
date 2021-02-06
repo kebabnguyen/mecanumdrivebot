@@ -3,6 +3,10 @@ import math
 import time
 import serial
 
+def truncate(number, digits) -> float: #truncates number to digits decimal places
+    stepper = 10.0 ** digits
+    return math.trunc(stepper * number) / stepper
+
 class DS4Parser:
     def __init__(self):
         self.serialopen = 0
@@ -63,7 +67,7 @@ class DS4Parser:
          
     def storevals(self, buttons):
         iterator = 0
-        for buttonname in buttons:
+        for buttonname in buttons: #for each button grabs the value and stores it
             if self.ds4drv.expect(buttonname) == 0:
                 readin = int(self.ds4drv.readline())
                 self.values[iterator] = readin
@@ -71,11 +75,11 @@ class DS4Parser:
         return self.values #this list probably could be attached to a dictionary
 
     def normalize(self, vals): #math according to mecanummath spreadsheet
-        normvals = [0, 0, 0, 0]
-        normvals[0] = (vals[0] / 127) - 1
-        normvals[1] = (vals[1] / -127) - 1
-        normvals[2] = vals[2] / 255
-        normvals[3] = vals[3] / 255
+        normvals = [0, 0, 0, 0] #vals[0] and vals[1] go from -1 to 1
+        normvals[0] = (vals[0] / 127) - 1 #these are the analog x and y
+        normvals[1] = (vals[1] / -127) + 1 
+        normvals[2] = vals[2] / 255 #l2
+        normvals[3] = vals[3] / 255 #r2
         return normvals
 
     def radius(self, x, y):
@@ -84,9 +88,26 @@ class DS4Parser:
     def radians(self, x, y): #gets angle from the vertical axis going CCW
         return math.atan2(x, y)
 
-    def calculate_motorvals(self, vals):
-        rad = self.radius(vals[0], vals[1])
-        theta = self.radians(vals[0], vals[1])
+    def calculate_polar(self, vals): #returns polar form of lstick values
+        radius = self.radius(vals[0], vals[1])
+        radians = self.radians(vals[0], vals[1])
+        if radians < 0:
+            radians += (2*math.pi)
+        radius = radius / 1.2
+        radius = truncate(radius, 2)
+        if radius < 0.1: #10% deadzone to stick, adjust as needed
+            radius = 0
+        polar = (radius, radians)
+        return polar
+
+    def calculate_motorvals(self, vals, coords): #returns the esc values to be sent to ard
+        mag = coords[0]
+        motoFL = 1500 + 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) + 250* vals[3] - 250* vals[2]
+        motoFR = 1500 + 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2] 
+        motoBR = 1500 + 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2]
+        motoBL = 1500 + 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) + 250* vals[3] - 250 * vals[2]
+        motorvals = (motoFL, motoFR, motoBR, motoBL)
+        return motorvals
 
     def is_active(self):
         try: #try fiddling around with timeout and seeing if that does anything
@@ -113,7 +134,8 @@ def main():
     while parser.controller_on() == 1:
         if parser.is_active() == 1:   #if light green
             normvals = parser.normalize(parser.storevals(parser.analogs))
-            print(normvals)
+            polarcoords = parser.calculate_polar(normvals)
+            print(parser.calculate_motorvals(normvals, polarcoords))
         elif parser.is_active() == 0: #light yellow, but still on
             print('in idle')
             pass
