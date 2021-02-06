@@ -103,10 +103,11 @@ class DS4Parser:
     def calculate_motorvals(self, vals, coords): #returns the esc values to be sent to ard
         mag = coords[0]
         motoFL = 1500 + 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) + 250* vals[3] - 250* vals[2]
-        motoFR = 1500 + 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2] 
-        motoBR = 1500 + 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2]
+        motoFR = 1500 - 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2] 
+        motoBR = 1500 - 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2]
         motoBL = 1500 + 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) + 250* vals[3] - 250 * vals[2]
         motorvals = (math.trunc(motoFL), math.trunc(motoFR), math.trunc(motoBR), math.trunc(motoBL))
+        print(motorvals)
         return motorvals
 
     def send_values(self, vals): #sends motorvals when active
