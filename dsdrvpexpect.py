@@ -106,8 +106,13 @@ class DS4Parser:
         motoFR = 1500 + 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2] 
         motoBR = 1500 + 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2]
         motoBL = 1500 + 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) + 250* vals[3] - 250 * vals[2]
-        motorvals = (motoFL, motoFR, motoBR, motoBL)
+        motorvals = (math.trunc(motoFL), math.trunc(motoFR), math.trunc(motoBR), math.trunc(motoBL))
         return motorvals
+
+    def send_values(self, vals): #sends motorvals when active
+        for value in vals:
+            self.ser.write(b'%d' %value)
+            self.ser.write(b'r')
 
     def is_active(self):
         try: #try fiddling around with timeout and seeing if that does anything
@@ -135,9 +140,11 @@ def main():
         if parser.is_active() == 1:   #if light green
             normvals = parser.normalize(parser.storevals(parser.analogs))
             polarcoords = parser.calculate_polar(normvals)
-            print(parser.calculate_motorvals(normvals, polarcoords))
+            motorvalues = parser.calculate_motorvals(normvals, polarcoords)
+            parser.send_values(motorvalues)
         elif parser.is_active() == 0: #light yellow, but still on
-            print('in idle')
+            parser.send_values((1500, 1500, 1500, 1500))
+            
             pass
 
     del parser
