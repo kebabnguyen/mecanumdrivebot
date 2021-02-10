@@ -24,13 +24,13 @@ void loop() {
   if(Serial.available() > 0)
   {
     readings[readtrack] = Serial.parseInt();
-    if(readtrack > 3)
+    if(readtrack == 4)
       readtrack = 0;
     else
       readtrack++;
     for (int i = 0; i < 4; i ++)
     {
-      escs[i].writeMicroseconds(readings[i]);
+      //escs[i].writeMicroseconds(readings[i]);
       Serial.print(i);
       Serial.print(": ");
       Serial.println(readings[i]);

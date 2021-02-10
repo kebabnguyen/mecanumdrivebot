@@ -101,11 +101,12 @@ class DS4Parser:
         return polar
 
     def calculate_motorvals(self, vals, coords): #returns the esc values to be sent to ard
-        mag = coords[0]
-        motoFL = 1500 + 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) + 250* vals[3] - 250* vals[2]
-        motoFR = 1500 - 250*mag*math.cos(coords[1]) + 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2] 
-        motoBR = 1500 - 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) - 250* vals[3] + 250* vals[2]
-        motoBL = 1500 + 250*mag*math.cos(coords[1]) - 250*mag*math.sin(coords[1]) + 250* vals[3] - 250 * vals[2]
+        scale = 250 #variable to change how fast it can go, limit 1000 theoretically
+        mag = coords[0] #abrupt change before deadzone and after, try scaling it
+        motoFL = 1500 + scale* mag*math.cos(coords[1]) + scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2]
+        motoFR = 1500 - scale* mag*math.cos(coords[1]) + scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2] 
+        motoBR = 1500 - scale* mag*math.cos(coords[1]) - scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2]
+        motoBL = 1500 + scale* mag*math.cos(coords[1]) - scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2]
         motorvals = (math.trunc(motoFL), math.trunc(motoFR), math.trunc(motoBR), math.trunc(motoBL))
         print(motorvals)
         return motorvals
@@ -114,6 +115,7 @@ class DS4Parser:
         for value in vals:
             self.ser.write(b'%d' %value)
             self.ser.write(b'r')
+            self.ser.flush()
 
     def is_active(self):
         try: #try fiddling around with timeout and seeing if that does anything
@@ -143,10 +145,10 @@ def main():
             polarcoords = parser.calculate_polar(normvals)
             motorvalues = parser.calculate_motorvals(normvals, polarcoords)
             parser.send_values(motorvalues)
+            
         elif parser.is_active() == 0: #light yellow, but still on
             parser.send_values((1500, 1500, 1500, 1500))
-            
-            pass
+
 
     del parser
 
