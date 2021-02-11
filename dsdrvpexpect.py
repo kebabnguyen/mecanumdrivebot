@@ -114,6 +114,7 @@ class DS4Parser:
     def send_values(self, vals): #sends motorvals when active
         for value in vals:
             self.ser.write(b'%d' %value)
+            self.ser.flush()
             self.ser.write(b'r')
             self.ser.flush()
 
@@ -146,7 +147,7 @@ def main():
             motorvalues = parser.calculate_motorvals(normvals, polarcoords)
             parser.send_values(motorvalues)
             
-        elif parser.is_active() == 0: #light yellow, but still on
+        else: #light yellow, but still on
             parser.send_values((1500, 1500, 1500, 1500))
 
 

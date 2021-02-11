@@ -23,18 +23,15 @@ void loop() {
   // put your main code here, to run repeatedly:
   if(Serial.available() > 0)
   {
-    readings[readtrack] = Serial.parseInt();
-    if(readtrack == 4)
-      readtrack = 0;
-    else
-      readtrack++;
     for (int i = 0; i < 4; i ++)
     {
-      //escs[i].writeMicroseconds(readings[i]);
-      Serial.print(i);
-      Serial.print(": ");
-      Serial.println(readings[i]);
+      readings[i] = Serial.parseInt();
+      if(readings[i] == 0)
+        readings[i] = 1500;
+      escs[i].writeMicroseconds(readings[i]);
+      Serial.print(readings[i]);
+      Serial.print(" ");
     }
-  }
-  
+    Serial.println();
+  } 
 }
