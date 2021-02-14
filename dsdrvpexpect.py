@@ -15,33 +15,7 @@ class DS4Parser:
             self.serialopen = 1
         except: 
             print('close the arduino port you muppet')
-        self.inputs = (
-                        'left_analog_x: ', 
-                        'left_analog_y: ',
-                        'right_analog_y: ',
-                        'right_analog_y: ',
-                        'l2_analog: ',
-                        'r2_analog: ',
-                        'dpad_up: ',
-                        'dpad_down: ',
-                        'dpad_left: ',
-                        'dpad_right: ',
-                        'button_cross: ',
-                        'button_circle: ',
-                        'button_square: ',
-                        'button_triangle: ',
-                        'button_l1: ',
-                        'button_l2: ',
-                        'button_l3: ',
-                        'button_r1: ',
-                        'button_r2: ',
-                        'button_r3: ',
-                        'button_share: ',
-                        'button_options: ',
-                        'button_trackpad: ',
-                        'button_ps: '
-                    )
-        self.analogs = ('left_analog_x: ', 
+        self.analogs = ('left_analog_x: ', #format for listening from ds4drv dump
                         'left_analog_y: ', 
                         'l2_analog: ',
                         'r2_analog: ',)
@@ -72,9 +46,9 @@ class DS4Parser:
                 readin = int(self.ds4drv.readline())
                 self.values[iterator] = readin
                 iterator += 1
-        return self.values #this list probably could be attached to a dictionary
+        return self.values 
 
-    def normalize(self, vals): #math according to mecanummath spreadsheet
+    def normalize(self, vals): #grabs vals and normalize to scale
         normvals = [0, 0, 0, 0] #vals[0] and vals[1] go from -1 to 1
         normvals[0] = (vals[0] / 127) - 1 #these are the analog x and y
         normvals[1] = (vals[1] / -127) + 1 
@@ -85,7 +59,7 @@ class DS4Parser:
     def radius(self, x, y):
         return math.sqrt( math.pow(x,2) + math.pow(y,2))
 
-    def radians(self, x, y): #gets angle from the vertical axis going CCW
+    def radians(self, x, y): #gets angle from the vertical axis going CW
         return math.atan2(x, y)
 
     def calculate_polar(self, vals): #returns polar form of lstick values
@@ -101,17 +75,17 @@ class DS4Parser:
         return polar
 
     def calculate_motorvals(self, vals, coords): #returns the esc values to be sent to ard
-        scale = 250 #variable to change how fast it can go, limit 1000 theoretically
+        scale = 500 #variable to change how fast it can go, limit 1000 theoretically
         mag = coords[0] #abrupt change before deadzone and after, try scaling it
         motoFL = 1500 + scale* mag*math.cos(coords[1]) + scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2]
         motoFR = 1500 - scale* mag*math.cos(coords[1]) + scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2] 
         motoBR = 1500 - scale* mag*math.cos(coords[1]) - scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2]
         motoBL = 1500 + scale* mag*math.cos(coords[1]) - scale* mag*math.sin(coords[1]) + scale* vals[3] - scale* vals[2]
         motorvals = (math.trunc(motoFL), math.trunc(motoFR), math.trunc(motoBR), math.trunc(motoBL))
-        print(motorvals)
+        #print(motorvals) debug
         return motorvals
 
-    def send_values(self, vals): #sends motorvals when active
+    def send_values(self, vals): #serial sends vals over for arduino to interpret
         for value in vals:
             self.ser.write(b'%d' %value)
             self.ser.flush()
@@ -125,7 +99,7 @@ class DS4Parser:
         except:
             return 0
 
-    def controller_on(self):
+    def controller_on(self): #checks if share button was pressed after going to idle
         try:
             if self.ds4drv.expect('delete this you muppet', timeout = .1) == 0:
                 print('goodbye')
@@ -146,11 +120,8 @@ def main():
             polarcoords = parser.calculate_polar(normvals)
             motorvalues = parser.calculate_motorvals(normvals, polarcoords)
             parser.send_values(motorvalues)
-            
         else: #light yellow, but still on
             parser.send_values((1500, 1500, 1500, 1500))
-
-
     del parser
 
 if __name__ == "__main__":
